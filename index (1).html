@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4f46e5">
+<title>Attendance Tracker — 75% Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">75% Attendance Tracker</p>
+      <h1>Attendance Tracker</h1>
+      <p class="subtitle">Paste your ERP report. Get your percentages, your safety margin, and exactly how many classes stand between you and 75%.</p>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- ===================== INPUT ===================== -->
+    <section class="card entry-card" id="entrySection">
+      <div class="card-head">
+        <h2>Paste your report</h2>
+        <button class="link-btn" id="sampleToggle" type="button" aria-expanded="false">Show sample format ▾</button>
+      </div>
+
+      <div class="sample-box" id="sampleBox" hidden>
+        <p>Any of these row styles will parse correctly — one subject per line:</p>
+        <pre>Data Structures 45 38
+Operating Systems: Held 50 Present 41
+Subject: Mathematics, Held: 40, Present: 25
+Computer Networks,48,44</pre>
+        <p class="sample-note">Rule of thumb: subject name first, then <strong>total classes held</strong>, then <strong>classes attended</strong> — in that order.</p>
+
+        <p>Full ERP attendance report tables also paste in directly, columns and all:</p>
+        <pre>1  CSUL301  Data Structures and Algorithms  Lecture  4  0  0  1  80.00
+2  CSUL302  Operating System  Lecture  6  0  0  0  100.00</pre>
+        <p class="sample-note">Here the columns are read as <strong>Present, OD, Makeup, Absent, Percentage</strong> — held is calculated as Present+OD+Makeup+Absent, and attended as Present+OD+Makeup. You can paste the "Attendance Report" title and column-header row too — they're ignored automatically.</p>
+      </div>
+
+      <textarea id="rawInput" rows="8" placeholder="Paste your raw attendance text here, e.g.
+
+Data Structures 45 38
+Operating Systems 50 41
+Mathematics 40 25
+Computer Networks 48 44"></textarea>
+
+      <div class="entry-actions">
+        <button class="btn btn-primary" id="calculateBtn" type="button">Calculate attendance</button>
+        <button class="btn btn-ghost" id="resetBtn" type="button">Clear &amp; start over</button>
+      </div>
+      <p class="parse-warning" id="parseWarning" hidden></p>
+    </section>
+
+    <!-- ===================== RESULTS ===================== -->
+    <div class="results" id="resultsSection" hidden>
+
+      <!-- Overall summary -->
+      <section class="card summary-card">
+        <h2>Overall standing</h2>
+        <div class="summary-grid">
+          <div class="ring" id="overallRing">
+            <div class="ring-inner">
+              <span class="ring-pct" id="overallPct">0%</span>
+              <span class="ring-label" id="overallLabel">SAFE</span>
+            </div>
+          </div>
+          <div class="summary-side">
+            <p class="overall-msg" id="overallMsg"></p>
+            <dl class="stats">
+              <div><dt>Attended</dt><dd id="totalAttended">0</dd></div>
+              <div><dt>Total held</dt><dd id="totalHeld">0</dd></div>
+              <div><dt>Subjects</dt><dd id="subjectCount">0</dd></div>
+              <div><dt>Below 75%</dt><dd id="belowCount">0</dd></div>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- Subject-wise breakdown -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Subject breakdown</h2>
+          <label class="sort-wrap">
+            <span>Sort</span>
+            <select id="sortSelect">
+              <option value="low">Lowest % first</option>
+              <option value="high">Highest % first</option>
+              <option value="original">Original order</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="chips" id="chips" role="group" aria-label="Filter subjects">
+          <button type="button" class="chip active" data-filter="all">All</button>
+          <button type="button" class="chip" data-filter="danger">Danger</button>
+          <button type="button" class="chip" data-filter="warn">Warning</button>
+          <button type="button" class="chip" data-filter="safe">Safe</button>
+        </div>
+
+        <div class="subject-list" id="subjectList"></div>
+        <p class="empty-msg" id="emptyMsg" hidden>No subjects in this filter.</p>
+      </section>
+
+      <section class="card footer-actions">
+        <button class="btn btn-ghost" id="copySummaryBtn" type="button">Copy summary</button>
+        <button class="btn btn-ghost" id="shareBtn" type="button">Share on WhatsApp</button>
+        <button class="btn btn-ghost" id="printBtn" type="button">Print view</button>
+        <span class="autosave-note">Saved to this browser automatically.</span>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Template for a single subject card -->
+  <template id="rowTemplate">
+    <article class="subject-card">
+      <div class="subject-top">
+        <input type="text" class="cell-input subject-name" aria-label="Subject name" />
+        <span class="pct-text"></span>
+      </div>
+
+      <div class="bar" aria-hidden="true"><div class="bar-fill"></div></div>
+
+      <div class="subject-mid">
+        <label class="num-field">Held
+          <input type="number" min="0" class="cell-input held-input" />
+        </label>
+        <label class="num-field">Attended
+          <input type="number" min="0" class="cell-input attended-input" />
+        </label>
+        <span class="status-pill"></span>
+      </div>
+
+      <p class="target-msg"></p>
+
+      <div class="sim-row">
+        <button type="button" class="mini-btn sim-attend" title="Simulate attending one more class">+1 Attended</button>
+        <button type="button" class="mini-btn sim-absent" title="Simulate missing one more class">+1 Absent</button>
+        <button type="button" class="mini-btn sim-remove" title="Remove this subject">Remove</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
